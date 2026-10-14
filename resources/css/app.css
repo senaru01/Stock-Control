@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+@import './dark.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Explicit tweaks for the dark theme (toggled via data-theme="dark" on <html>). */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Desktop sidebar collapsed to icons only (toggled via data-sidebar-collapsed on <html>). */
+@custom-variant mini {
+    @media (width >= 64rem) {
+        &:where([data-sidebar-collapsed='true'] *) {
+            @slot;
+        }
+    }
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+/*
+ * Login background: batik Kawung tiles drawn in soga brown on a warm cream cloth (gold on indigo in the dark
+ * theme), faded towards the centre so the login card stays easy to read.
+ */
+.batik-backdrop {
+    --batik-cloth: #f6eedf;
+    --batik-ink: #8a5a2b;
+    --batik-ink-opacity: 0.22;
+    --batik-glow: rgba(246, 238, 223, 0.92);
+    position: relative;
+    isolation: isolate;
+    background-color: var(--batik-cloth);
+}
+
+[data-theme='dark'] .batik-backdrop {
+    --batik-cloth: #111a33;
+    --batik-ink: #c9a24a;
+    --batik-ink-opacity: 0.2;
+    --batik-glow: rgba(17, 26, 51, 0.9);
+}
+
+.batik-backdrop::before,
+.batik-backdrop::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.batik-backdrop::before {
+    background-color: var(--batik-ink);
+    opacity: var(--batik-ink-opacity);
+    mask-image: url('/images/batik-kawung.svg');
+    mask-size: 96px 96px;
+    mask-repeat: repeat;
+    -webkit-mask-image: url('/images/batik-kawung.svg');
+    -webkit-mask-size: 96px 96px;
+    -webkit-mask-repeat: repeat;
+}
+
+.batik-backdrop::after {
+    background: radial-gradient(ellipse 34rem 30rem at center, var(--batik-glow) 0%, transparent 72%);
+}

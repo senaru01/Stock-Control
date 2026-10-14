@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <!-- Batik Kawung tile: four palm-fruit petals around a centre, with isen-isen dots. Used as a CSS mask. -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <!-- Petals around the tile centre -->
+    <ellipse cx="60" cy="29" rx="16" ry="27"/>
+    <ellipse cx="60" cy="91" rx="16" ry="27"/>
+    <ellipse cx="29" cy="60" rx="27" ry="16"/>
+    <ellipse cx="91" cy="60" rx="27" ry="16"/>
+    <!-- Inner lines of each petal -->
+    <ellipse cx="60" cy="29" rx="8" ry="16" stroke-width="1.4"/>
+    <ellipse cx="60" cy="91" rx="8" ry="16" stroke-width="1.4"/>
+    <ellipse cx="29" cy="60" rx="16" ry="8" stroke-width="1.4"/>
+    <ellipse cx="91" cy="60" rx="16" ry="8" stroke-width="1.4"/>
+    <!-- Centre flower and the corners where four tiles meet -->
+    <path d="M60 52 L68 60 L60 68 L52 60 Z" stroke-width="1.6"/>
+    <circle cx="0" cy="0" r="7"/>
+    <circle cx="120" cy="0" r="7"/>
+    <circle cx="0" cy="120" r="7"/>
+    <circle cx="120" cy="120" r="7"/>
+  </g>
+  <g fill="#000">
+    <circle cx="60" cy="60" r="2.6"/>
+    <circle cx="60" cy="29" r="2.4"/>
+    <circle cx="60" cy="91" r="2.4"/>
+    <circle cx="29" cy="60" r="2.4"/>
+    <circle cx="91" cy="60" r="2.4"/>
+    <!-- isen-isen: small dots filling the spaces between petals -->
+    <circle cx="30" cy="30" r="1.6"/>
+    <circle cx="90" cy="30" r="1.6"/>
+    <circle cx="30" cy="90" r="1.6"/>
+    <circle cx="90" cy="90" r="1.6"/>
+    <circle cx="22" cy="22" r="1.1"/>
+    <circle cx="98" cy="22" r="1.1"/>
+    <circle cx="22" cy="98" r="1.1"/>
+    <circle cx="98" cy="98" r="1.1"/>
+    <circle cx="38" cy="38" r="1.1"/>
+    <circle cx="82" cy="38" r="1.1"/>
+    <circle cx="38" cy="82" r="1.1"/>
+    <circle cx="82" cy="82" r="1.1"/>
+  </g>
+</svg>
