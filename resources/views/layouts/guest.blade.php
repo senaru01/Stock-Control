@@ -10,6 +10,8 @@
 
     <title>{{ isset($title) ? $title.' · ' : '' }}{{ config('app.name') }}</title>
 
+    @include('layouts.partials.favicon')
+
     @include('layouts.partials.ui-preferences')
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
