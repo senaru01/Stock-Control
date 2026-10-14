@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\TakeDailyStock;
 use App\Livewire\DailyStock\Index;
 use App\Mail\DailyStockReportMail;
 use App\Models\DailyStock;
@@ -12,6 +13,7 @@ use App\Services\ResumeChartImage;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Mail\MailManager;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
@@ -471,6 +473,23 @@ class DailyStockTest extends TestCase
 
         $this->assertSame(1, $result['sent']);
         Mail::assertSent(DailyStockReportMail::class, fn (DailyStockReportMail $mail) => $mail->charts === []);
+    }
+
+    public function test_a_failed_daily_stock_waits_before_the_schedule_tries_again(): void
+    {
+        $this->apiFails = true;
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:00'));
+        $this->artisan('stock:daily')->assertFailed();
+
+        // A failing SOS API is not hit again every minute, which would hold up the other scheduled commands.
+        $this->apiFails = false;
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:01'));
+        $this->artisan('stock:daily')->assertSuccessful();
+        $this->assertDatabaseCount('daily_stocks', 0);
+
+        Cache::forget(TakeDailyStock::RETRY_CACHE_KEY);
+        $this->artisan('stock:daily')->assertSuccessful();
+        $this->assertDatabaseCount('daily_stocks', 1);
     }
 
     public function test_scheduled_run_without_recipients_sends_nothing(): void

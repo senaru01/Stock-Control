@@ -66,8 +66,9 @@
 
     @if ($this->schedulerLooksIdle)
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Belum ada pengambilan otomatis sejak {{ $this->latest->local_time }} WIB. Pastikan scheduler berjalan:
-            <code class="rounded bg-amber-100 px-1">composer run dev</code> atau <code class="rounded bg-amber-100 px-1">php artisan schedule:work</code>.
+            Belum ada pengambilan otomatis sejak {{ $this->latest->local_time }} WIB. Pastikan scheduler server berjalan
+            (Task Scheduler menjalankan <code class="rounded bg-amber-100 px-1">php artisan schedule:run</code> tiap menit)
+            dan periksa <code class="rounded bg-amber-100 px-1">storage/logs/laravel.log</code> bila API SOS gagal.
         </div>
     @endif
 

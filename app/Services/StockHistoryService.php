@@ -120,15 +120,38 @@ class StockHistoryService
     }
 
     /**
-     * Whether a scheduled snapshot was already stored for this local minute.
+     * The most recent scheduled moment at or before the given one (local time): the start of the current
+     * interval, or the last fixed time that has passed (yesterday's last one before today's first).
      */
-    public function alreadyTaken(CarbonInterface $at): bool
+    public function lastDueAt(CarbonInterface $at): ?CarbonImmutable
     {
-        $local = CarbonImmutable::instance($at)->setTimezone($this->timezone());
+        $local = CarbonImmutable::instance($at)->setTimezone($this->timezone())->startOfMinute();
+        $schedule = $this->schedule();
 
+        if ($schedule['mode'] === self::MODE_INTERVAL) {
+            $minutes = $local->hour * 60 + $local->minute;
+
+            return $local->startOfDay()->addMinutes($minutes - $minutes % $schedule['interval_minutes']);
+        }
+
+        if ($schedule['times'] === []) {
+            return null;
+        }
+
+        $passed = array_values(array_filter($schedule['times'], fn (string $time) => $time <= $local->format('H:i')));
+
+        return $passed !== []
+            ? $local->setTimeFromTimeString(end($passed))
+            : $local->subDay()->setTimeFromTimeString(end($schedule['times']));
+    }
+
+    /**
+     * Whether any snapshot (scheduled or manual) was stored at or after the given moment.
+     */
+    public function takenSince(CarbonInterface $since): bool
+    {
         return StockSnapshot::query()
-            ->where('local_date', $local->toDateString())
-            ->where('local_time', $local->format('H:i'))
+            ->where('taken_at', '>=', CarbonImmutable::instance($since)->setTimezone((string) config('app.timezone')))
             ->exists();
     }
 

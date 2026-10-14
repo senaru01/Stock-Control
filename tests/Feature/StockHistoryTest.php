@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Console\Commands\TakeStockSnapshot;
 use App\Livewire\StockHistory\Index;
 use App\Models\StockSnapshot;
 use App\Services\StockHistoryService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -94,20 +96,68 @@ class StockHistoryTest extends TestCase
         $this->assertDatabaseCount('stock_snapshots', 0);
     }
 
-    public function test_command_only_takes_a_snapshot_when_due_and_not_twice(): void
+    public function test_command_takes_one_snapshot_per_scheduled_moment(): void
     {
-        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:10'));
-        $this->artisan('stock:snapshot')->assertSuccessful();
-        $this->assertDatabaseCount('stock_snapshots', 0);
-
         CarbonImmutable::setTestNow($this->utc('2026-10-09 07:15'));
         $this->artisan('stock:snapshot')->assertSuccessful();
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        $this->assertDatabaseCount('stock_snapshots', 1);
+
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:29'));
         $this->artisan('stock:snapshot')->assertSuccessful();
         $this->assertDatabaseCount('stock_snapshots', 1);
 
         $this->artisan('stock:snapshot --force')->assertSuccessful();
         $this->assertDatabaseCount('stock_snapshots', 2);
         $this->assertSame('manual', StockSnapshot::latest('id')->first()->source);
+    }
+
+    public function test_a_scheduled_moment_missed_by_a_busy_scheduler_is_taken_on_the_next_run(): void
+    {
+        app(StockHistoryService::class)->saveSchedule(['mode' => 'interval', 'interval_minutes' => 60, 'times' => []]);
+
+        // The 08:00 run was skipped (scheduler still busy); 08:03 still takes the 08:00 snapshot, once.
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:00'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 08:03'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 08:40'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+
+        $this->assertSame(['07:00', '08:03'], StockSnapshot::query()->orderBy('id')->pluck('local_time')->all());
+        $this->assertSame('2026-10-09 09:00', app(StockHistoryService::class)->lastDueAt($this->wib('2026-10-09 09:59'))->format('Y-m-d H:i'));
+    }
+
+    public function test_fixed_times_catch_up_on_the_last_time_that_passed(): void
+    {
+        $history = app(StockHistoryService::class);
+        $history->saveSchedule(['mode' => 'times', 'interval_minutes' => 15, 'times' => ['07:00', '16:00']]);
+
+        $this->assertSame('2026-10-08 16:00', $history->lastDueAt($this->wib('2026-10-09 06:59'))->format('Y-m-d H:i'));
+        $this->assertSame('2026-10-09 07:00', $history->lastDueAt($this->wib('2026-10-09 15:59'))->format('Y-m-d H:i'));
+
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:20'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 12:00'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+
+        $this->assertSame(['07:20'], StockSnapshot::query()->pluck('local_time')->all());
+    }
+
+    public function test_a_failed_api_call_waits_before_the_schedule_tries_again(): void
+    {
+        $this->apiFails = true;
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:15'));
+        $this->artisan('stock:snapshot')->assertFailed();
+
+        $this->apiFails = false;
+        CarbonImmutable::setTestNow($this->utc('2026-10-09 07:16'));
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        $this->assertDatabaseCount('stock_snapshots', 0);
+
+        Cache::forget(TakeStockSnapshot::RETRY_CACHE_KEY);
+        $this->artisan('stock:snapshot')->assertSuccessful();
+        $this->assertDatabaseCount('stock_snapshots', 1);
     }
 
     public function test_command_is_scheduled_every_minute(): void
